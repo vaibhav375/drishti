@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}{{ d.name }} — dossier — DRISHTI{% endblock %}
+{% block content %}
+
+<div class="dossier-head">
+  <div>
+    <div class="idline">
+      <span>NORAD {{ d.norad_id }}</span>
+      {% if d.satcat %}<span>· {{ d.satcat.intl_desig or '—' }}</span>
+      <span>· {{ d.satcat.country or '—' }}</span>
+      {% if d.satcat.launch_date %}<span>· launched {{ d.satcat.launch_date }}</span>{% endif %}{% endif %}
+    </div>
+    <h1>{{ d.name }}</h1>
+    {% if d.decayed %}
+    <div class="tags"><span class="tag warn">⚠ DECAYED / RE-ENTERED{% if d.decay_date %} · {{ d.decay_date }}{% endif %}</span></div>
+    {% endif %}
+    {% if d.regime %}
+    <div class="tags">
+      <span class="tag {{ 'ref' if d.regime.primary in ['GEO','GRAVEYARD'] }}">{{ d.regime.primary }}</span>
+      {% for t in d.regime.special_tags %}<span class="tag sig">{{ t }}</span>{% endfor %}
+      {% if d.satcat and d.satcat.object_type %}<span class="tag">{{ d.satcat.object_type }}</span>{% endif %}
+      {% if d.satcat and d.satcat.rcs_m2 %}<span class="tag">RCS {{ "%.2f"|format(d.satcat.rcs_m2) }} m²</span>{% endif %}
+    </div>
+    {% endif %}
+    <div style="margin-top:14px">
+      <a class="btn" href="{{ url_for('object_watch_toggle', norad_id=d.norad_id) }}">
+        {{ '✓ watching — remove' if watched else '+ add to watch' }}</a>
+    </div>
+  </div>
+
+  {% if d.threat and d.threat.score is not none %}
+  <div class="gauge">
+    <div class="row">
+      <span class="label">Composite threat</span>
+      <span class="score">{{ "%.0f"|format(d.threat.score) }}<small>/100</small></span>
+    </div>
+    <div class="track"><div class="fill" style="width:{{ d.threat.score }}%"></div></div>
+    <div class="cov">{{ d.threat.n_factors_available }}/{{ d.threat.n_factors_total }} factors available · explainable, no black box</div>
+  </div>
+  {% endif %}
+</div>
+
+{% if orbit3d %}
+<div class="card orbit3d-card">
+  <div class="card-head"><h2 class="sect" style="color:#eef1f4">Orbit — {{ 'last known (decayed)' if d.decayed else 'live 3D' }}</h2>
+    <span class="meta" style="color:#8a97a5">
+      {% if orbit3d.orbits|length > 1 %}orange = this object · blue = RPO target · {% endif %}drag to rotate · scroll to zoom</span></div>
+  <div id="orbit3d" class="orbit3d"></div>
+  <p class="hint" style="color:#8a97a5;margin-top:12px">Orbit geometry is real (semi-major axis, eccentricity, inclination, RAAN, argument of perigee).
+    The moving marker shows direction of travel — its phase is schematic, not a synchronized timestamp.</p>
+</div>
+{% endif %}
+
+{% if svg.orbit %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">{{ 'Where it was (last known)' if d.decayed else 'Where it is' }}</h2>
+    <span class="meta">
+      {% if fetched %}<span class="tag ok" style="margin-right:8px">↻ just pulled from Celestrak</span>{% endif %}
+      <a class="btn" href="{{ url_for('object_refresh', norad_id=d.norad_id) }}">↻ refresh from Celestrak</a></span></div>
+  <div class="dossier-orbit">
+    <div>
+      <div class="kv">
+        <div><div class="k">Regime</div><div class="v">{{ d.regime.label }}</div></div>
+        <div><div class="k">Period</div><div class="v">{{ "%.1f"|format(d.elements.period_min) }} min</div></div>
+        <div><div class="k">Perigee</div><div class="v">{{ "%.0f"|format(d.elements.perigee_km) }} km</div></div>
+        <div><div class="k">Apogee</div><div class="v">{{ "%.0f"|format(d.elements.apogee_km) }} km</div></div>
+        <div><div class="k">Inclination</div><div class="v">{{ "%.2f"|format(d.elements.incl_deg) }}°</div></div>
+        <div><div class="k">Eccentricity</div><div class="v">{{ "%.4f"|format(d.elements.ecc) }}</div></div>
+      </div>
+      <p class="hint" style="margin-top:14px">{{ d.regime.explanation }}</p>
+    </div>
+    <div class="plot-box">{{ svg.orbit|safe }}</div>
+  </div>
+</div>
+{% endif %}
+
+{% if not d.has_tle %}
+<div class="notice">No current element set stored for this object. Its catalogue metadata is shown above;
+  behavioral characterization (maneuvers, threat score, decay) needs ingested TLE history —
+  run <span style="color:var(--ink)">ingest-celestrak</span> or <span style="color:var(--ink)">ingest-historical</span> for it.</div>
+{% endif %}
+
+{% if d.threat and d.threat.score is not none %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Why this score</h2><span class="meta">weighted over available factors only</span></div>
+  <div class="factors">
+    {% for f in d.threat.factors %}
+    <div class="factor {{ 'na' if f.value is none }} {{ 'hi' if f.value is not none and f.value >= 0.66 }}">
+      <div class="fname">{{ f.name.replace('_',' ') }}<small>weight {{ "%.2f"|format(f.weight) }}</small></div>
+      <div class="fbar"><i style="width:{{ (f.value*100) if f.value is not none else 0 }}%"></i></div>
+      <div class="fval">{{ "%.2f"|format(f.value) if f.value is not none else 'n/a' }}</div>
+      <div class="fwhy">{{ f.explanation }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if anomaly %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Statistical anomaly</h2><span class="meta">unsupervised ML · IsolationForest over the catalogue</span></div>
+  <div class="dossier-orbit" style="grid-template-columns:1fr 300px;align-items:center">
+    <div>
+      <p class="lede" style="font-size:15px">This orbit is
+        {% if anomaly.score >= 0.66 %}<b style="color:var(--signal)">a strong statistical outlier</b>
+        {% elif anomaly.score >= 0.4 %}<b style="color:var(--warn)">somewhat unusual</b>
+        {% else %}typical{% endif %}
+        versus the {{ "{:,}".format(anomaly_n) }} active objects the model was trained on. The feature that
+        stands out most is <b>{{ anomaly.top_feature }}</b> ({{ "%+.1f"|format(anomaly.top_feature_z) }}σ from
+        the population mean).</p>
+      <p class="hint" style="margin-top:12px">An anomaly score is not a threat verdict — a novel experimental
+        orbit and an evasive object both look unusual. It flags "worth a human look", nothing more.</p>
+    </div>
+    <div class="gauge">
+      <div class="row"><span class="label">Anomaly</span><span class="score">{{ "%.0f"|format(anomaly.score*100) }}<small>/100</small></span></div>
+      <div class="track"><div class="fill" style="width:{{ anomaly.score*100 }}%;background:{{ '#e83a00' if anomaly.score>=0.66 else ('#b5730a' if anomaly.score>=0.4 else '#1a4f9c') }}"></div></div>
+      <div class="cov">{{ 'flagged outlier' if anomaly.is_outlier else 'within normal range' }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head"><h2 class="sect">Mitigations</h2><span class="meta">decision-support · space-safety · never targeting</span></div>
+  <div class="mits">
+    {% for m in d.mitigations %}
+    <div class="mit {{ m.urgency }}">
+      <div class="top"><span class="mtitle">{{ m.title }}</span><span class="cat">{{ m.category }} · {{ m.urgency }}</span></div>
+      <div class="why">{{ m.rationale }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if posture %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Response posture &amp; coordination</h2>
+    <span class="meta">
+      <span class="tag {{ 'sig' if posture.level=='priority' else ('warn' if posture.level=='elevated' else 'ok') }}">{{ posture.level }} posture</span></span></div>
+  <p class="hint" style="margin-bottom:16px">How a case like this is coordinated in the open. These are the real public frameworks and channels —
+    not a claim that any organization has acted. DRISHTI recommends; it never asserts actions it can’t observe.</p>
+  <div class="kv" style="gap:18px 26px">
+    {% for name, desc in posture.frameworks %}
+    <div><div class="k">{{ name }}</div><div class="v" style="font-family:var(--font-body);font-size:14px;color:#31404e;font-weight:400;line-height:1.5">{{ desc }}</div></div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if d.rpo %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Proximity operations</h2>
+    <span class="meta">vs {{ d.rpo_target_name or d.rpo.target_norad }} · F2.1</span></div>
+  <div class="kv">
+    <div><div class="k">Assessment</div><div class="v" style="color:{{ 'var(--signal)' if d.rpo.label=='likely' else 'var(--ink)' }}">{{ d.rpo.label }}</div></div>
+    <div><div class="k">Minimum range</div><div class="v">{{ "%.2f"|format(d.rpo.min_range_km) }} km</div></div>
+    <div><div class="k">Close episodes</div><div class="v">{{ d.rpo.n_episodes }}</div></div>
+    <div><div class="k">Days close</div><div class="v">{{ "%.1f"|format(d.rpo.total_close_days) }}</div></div>
+  </div>
+  {% if d.rpo.same_launch_lineage %}
+  <p class="hint" style="margin-top:14px">⚠ Actor and target share a launch designator — this may be a sub-satellite deployment, not an inspection. Confirm before escalating.</p>
+  {% endif %}
+  {% if svg.range %}
+  <div class="plot-box" style="margin-top:16px">{{ svg.range|safe }}</div>
+  <p class="hint" style="margin-top:10px">Relative range on a log scale — how close the two objects came, over time. The shaded band marks sustained proximity.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if d.maneuvers %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Behavioral history</h2>
+    <span class="meta">{{ d.maneuvers|length }} maneuvers · noise floor {{ "%.2f"|format(d.noise_floor) }} m/s · F1.1/F1.2</span></div>
+  {% if d.pattern %}
+  <div class="kv" style="margin-bottom:18px">
+    <div><div class="k">Campaigns</div><div class="v">{{ d.pattern.baseline.n_campaigns }}</div></div>
+    <div><div class="k">Typical burn</div><div class="v">{{ "%.2f"|format(d.pattern.baseline.typical_dv_ms) }} m/s</div></div>
+    <div><div class="k">Typical tempo</div><div class="v">{{ "%.1f"|format(d.pattern.baseline.typical_tempo_days) }} days</div></div>
+    <div><div class="k">Anomalous</div><div class="v">{{ d.pattern.classifications|selectattr('label','equalto','anomalous')|list|length }} / {{ d.pattern.classifications|length }}</div></div>
+  </div>
+  {% endif %}
+  <div class="mini-spikes">
+    {% set mx = (d.maneuvers|map(attribute='dv_ms')|max) %}
+    {% for m in d.maneuvers %}
+      <i class="{{ 'hi' if m.dv_ms >= 0.5*mx }}" style="height:{{ 20 + (m.dv_ms/mx)*80 }}%" title="{{ m.epoch_iso[:10] }} · {{ '%.1f'|format(m.dv_ms) }} m/s"></i>
+    {% endfor %}
+  </div>
+  <p class="hint" style="margin-top:10px">Each bar is one detected maneuver, height ∝ estimated Δv. Orange = larger than the object’s own typical burn.</p>
+</div>
+{% endif %}
+
+{% if d.changepoint %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Behavioral shift</h2>
+    <span class="meta">change-point detection · t={{ "%.1f"|format(d.changepoint.t_stat) }}</span></div>
+  <p class="lede" style="font-size:15.5px">This object's <b>{{ d.changepoint.metric }}</b>
+    {{ d.changepoint.direction }} from
+    <b>{{ "%.2f"|format(d.changepoint.before_mean) }}{{ d.changepoint.unit }}</b> to
+    <b style="color:var(--signal)">{{ "%.2f"|format(d.changepoint.after_mean) }}{{ d.changepoint.unit }}</b>
+    around <b>{{ d.changepoint.epoch_iso[:10] }}</b> — a statistically significant shift in its
+    established pattern of life, distinct from any single anomalous burn.</p>
+  <p class="hint" style="margin-top:10px">Detected by splitting the campaign series at the point that
+    maximizes the two-sample t-statistic. A shift this size is what "it started behaving differently" looks like.</p>
+</div>
+{% endif %}
+
+{% if d.decay %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Re-entry outlook</h2><span class="meta">{{ d.decay.model }} · bonus</span></div>
+  <div class="kv">
+    <div><div class="k">Perigee</div><div class="v">{{ "%.0f"|format(d.decay.latest_perigee_km) }} km</div></div>
+    <div><div class="k">Decay rate</div><div class="v">{{ "%.2f"|format(d.decay.decay_rate_km_per_day) }} km/day</div></div>
+    <div><div class="k">Predicted re-entry</div><div class="v" style="color:var(--signal)">{{ d.decay.predicted_reentry_iso[:10] }}</div></div>
+    <div><div class="k">Days out</div><div class="v">~{{ "%.0f"|format(d.decay.days_to_reentry) }}</div></div>
+  </div>
+  <p class="hint" style="margin-top:12px">{{ d.decay.note }}</p>
+</div>
+{% endif %}
+
+{% if d.disposal %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">GEO disposal compliance</h2><span class="meta">IADC guideline · bonus</span></div>
+  <div class="kv">
+    <div><div class="k">Status</div><div class="v">
+      <span class="tag {{ 'ok' if d.disposal.compliant else ('warn' if d.disposal.compliant is false else '') }}">{{ d.disposal.status }}</span></div></div>
+    <div><div class="k">Perigee vs GEO</div><div class="v">{{ "%+.0f"|format(d.disposal.km_above_geo) }} km</div></div>
+  </div>
+  <p class="hint" style="margin-top:12px">{{ d.disposal.note }}</p>
+</div>
+{% endif %}
+
+{% if d.threat and d.threat.score is not none %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Grounded analyst report</h2><span class="meta">local model · every sentence verified · F4</span></div>
+  <p class="hint">Generate a plain-language narrative from the numbers above. Each sentence is checked against the
+    computed facts — nothing it can’t back gets through.</p>
+  <p style="margin-top:14px"><a class="chip on" href="{{ url_for('object_report', norad_id=d.norad_id) }}">Generate grounded report →</a>
+    <span class="hint" style="margin-left:10px">first run loads the local model (~10s)</span></p>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+{% if orbit3d %}
+<script id="orbit3d-data" type="application/json">{{ orbit3d|tojson }}</script>
+<script src="{{ url_for('static', filename='vendor/three.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/OrbitControls.js') }}"></script>
+<script src="{{ url_for('static', filename='orbit3d.js') }}"></script>
+{% endif %}
+{% endblock %}

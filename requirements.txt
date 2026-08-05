@@ -1,0 +1,22 @@
+# Core (Tier 0-2)
+sgp4>=2.23
+skyfield>=1.48
+astropy>=6.0
+numpy>=1.26
+scipy>=1.12
+pandas>=2.2
+requests>=2.31
+spacetrack>=1.3
+python-dotenv>=1.0
+# ML (Tier 1-3)
+scikit-learn>=1.4
+networkx>=3.2
+# Dashboards / web console
+streamlit>=1.35
+plotly>=5.20
+flask>=3.0          # multi-page interactive web console (web/app.py)
+# Local LLM (Tier 4, Apple Silicon only — install on the M1, not CI)
+mlx>=0.32
+mlx-lm>=0.31
+# NOTE: poliastro is intentionally absent (archived Oct 2023).
+# RIC / Clohessy-Wiltshire math is implemented in core/frames.py.

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Validation events — DRISHTI{% endblock %}
+{% block content %}
+<p class="eyebrow">Validation events</p>
+<h1 class="title">The benchmark — real, documented, labeled</h1>
+<p class="lede">DRISHTI is validated against a hand-labeled set of real historical events: known
+  inspections, ASAT fragmentations, a collision, and routine controls that must <em>not</em> trip.
+  This set is the project’s dataset contribution.</p>
+
+<div class="tiles" style="margin-top:26px">
+  {% for e in events %}
+  <a class="tile" href="{{ url_for('event_detail', key=e.key) }}">
+    <div class="k">{{ e.event_type }} · {{ e.label }}</div>
+    <h3>{{ e.description }}</h3>
+    <p>{{ e.window_start }} → {{ e.window_end }}</p>
+    <span class="go">Open case →</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

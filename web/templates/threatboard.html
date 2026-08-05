@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Threat board — DRISHTI{% endblock %}
+{% block content %}
+
+<p class="eyebrow">Threat board</p>
+<h1 class="title">Ranked by explainable threat</h1>
+<p class="lede">Objects with enough behavioral history for the full pipeline, scored on maneuver activity,
+  anomalous tempo, proximity to high-value assets, regime sensitivity, and attribution — each score
+  opens to its factor breakdown and mitigations.</p>
+
+<div class="plot-box" style="margin-top:24px">{{ scatter|safe }}</div>
+<div class="plot-legend"><span><i style="background:#1a4f9c"></i>LEO</span><span><i style="background:#e83a00"></i>GEO</span><span><i style="background:#b5730a"></i>graveyard</span><span style="color:var(--slate)">· dot position = threat × altitude · hover for object</span></div>
+
+<div class="tablewrap" style="margin-top:26px">
+<table>
+  <thead><tr>
+    <th class="mono">NORAD</th><th>Object</th><th>Regime</th>
+    <th style="width:34%">Threat</th><th class="num">Score</th><th>Top mitigation</th>
+  </tr></thead>
+  <tbody>
+  {% for d in items %}
+    <tr>
+      <td class="oid">{{ d.norad_id }}</td>
+      <td><a class="name" href="{{ url_for('object_dossier', norad_id=d.norad_id) }}">{{ d.name }}</a></td>
+      <td><span class="tag {{ 'ref' if d.regime.primary in ['GEO','GRAVEYARD'] }}">{{ d.regime.label }}</span></td>
+      <td>
+        <div class="track" style="height:7px"><div class="fill" style="width:{{ d.threat.score }}%"></div></div>
+      </td>
+      <td class="num" style="font-weight:600">{{ "%.0f"|format(d.threat.score) }}</td>
+      <td class="mono" style="font-size:12px;color:var(--slate)">
+        {% set m = d.mitigations[0] %}
+        <span class="tag {{ 'sig' if m.urgency=='priority' else ('warn' if m.urgency=='elevated' else 'ok') }}">{{ m.urgency }}</span>
+        {{ m.title }}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint" style="margin-top:16px">{{ items|length }} objects scored. A high score is an invitation to look closer, not a verdict —
+  open any row for the full evidentiary breakdown.</p>
+
+{% endblock %}

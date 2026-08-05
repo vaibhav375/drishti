@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Orbit map — DRISHTI{% endblock %}
+{% block content %}
+<p class="eyebrow">Orbit map</p>
+<h1 class="title">Where everything is — and what kind</h1>
+<p class="lede">Every active payload plotted by altitude and inclination. The orbital shells — LEO’s dense
+  band, the GPS/GNSS ring at MEO, the crowded GEO line, sun-synchronous at ~98° — are the geography
+  of space activity. Colour is regime. Hover any point for the object.</p>
+
+<form class="controls" method="get" action="{{ url_for('orbit_map') }}" style="margin-top:22px">
+  <a class="chip {{ 'on' if not regime }}" href="{{ url_for('orbit_map') }}">all</a>
+  {% for r in regimes %}
+  <a class="chip {{ 'on' if regime==r }}" href="{{ url_for('orbit_map', regime=r) }}">{{ r }}</a>
+  {% endfor %}
+  <span class="hint" style="margin-left:auto">{{ "{:,}".format(n) }} of {{ "{:,}".format(total) }} plotted</span>
+</form>
+
+<div class="plot-box">{{ scatter|safe }}</div>
+<div class="plot-legend">
+  <span><i style="background:#1a4f9c"></i>LEO</span>
+  <span><i style="background:#6a8fc7"></i>MEO</span>
+  <span><i style="background:#e83a00"></i>GEO</span>
+  <span><i style="background:#8a5cc0"></i>HEO</span>
+  <span><i style="background:#c05c8a"></i>GTO</span>
+  <span><i style="background:#5f6b78"></i>other</span>
+</div>
+
+<div class="card" style="margin-top:26px">
+  <div class="card-head"><h2 class="sect">Regime distribution</h2><span class="meta">of the plotted sample</span></div>
+  <div class="plot-box" style="border:none;padding:0">{{ bars|safe }}</div>
+</div>
+{% endblock %}

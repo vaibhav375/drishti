@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Ask — DRISHTI{% endblock %}
+{% block content %}
+<p class="eyebrow">Natural-language query</p>
+<h1 class="title">Ask the catalogue</h1>
+<p class="lede">Type plain English. The local model translates your request into a filter — it never
+  answers or invents; the filtering runs deterministically over the real catalogue, and the
+  interpretation is shown back to you. Try “Chinese payloads in GEO”, “most anomalous LEO objects”,
+  or “decayed Cosmos debris”.</p>
+
+<form class="controls" method="get" action="{{ url_for('nl_query') }}" style="margin-top:22px">
+  <label class="search">
+    <span class="hint">⌕</span>
+    <input type="text" name="q" value="{{ q }}" placeholder="e.g. sun-synchronous satellites near 98 degrees" autofocus>
+  </label>
+  <button class="chip on" type="submit">Ask</button>
+</form>
+
+{% if q and spec %}
+<div class="card" style="margin-top:14px">
+  <div class="card-head">
+    <h2 class="sect">Interpreted as</h2>
+    <span class="meta">{{ 'local model parsed your request' if used_llm else 'no filter parsed — searched names' }} · {{ "{:,}".format(total) }} match(es)</span>
+  </div>
+  <p class="report" style="font-size:16px">{{ spec.describe() }}</p>
+</div>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th class="mono">NORAD</th><th>Object</th><th>Country</th><th>Type</th>
+    <th>Regime</th><th class="num">Perigee</th><th class="num">Apogee</th><th class="num">Incl</th>
+    {% if spec.sort == 'anomaly' %}<th class="num">Anomaly</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for r in results %}
+    <tr>
+      <td class="oid">{{ r.norad_id }}</td>
+      <td><a class="name" href="{{ url_for('object_dossier', norad_id=r.norad_id) }}">{{ r.name }}</a></td>
+      <td class="mono" style="color:var(--slate)">{{ r.country or '—' }}</td>
+      <td><span class="tag">{{ r.object_type or '—' }}</span></td>
+      <td><span class="tag {{ 'ref' if r.regime=='GEO' }}">{{ r.regime }}</span></td>
+      <td class="num">{{ "%.0f"|format(r.perigee_km) if r.perigee_km is not none else '—' }}</td>
+      <td class="num">{{ "%.0f"|format(r.apogee_km) if r.apogee_km is not none else '—' }}</td>
+      <td class="num">{{ "%.1f"|format(r.inclination) if r.inclination is not none else '—' }}</td>
+      {% if spec.sort == 'anomaly' %}<td class="num" style="font-weight:600">{{ "%.0f"|format(r.anomaly*100) if r.get('anomaly') is not none else '—' }}</td>{% endif %}
+    </tr>
+  {% else %}
+    <tr><td colspan="9" style="padding:30px;text-align:center;color:var(--slate)">No objects match that query.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint" style="margin-top:14px">The model only produced the filter above; every row is a real catalogue object.
+  Behavioral filters (maneuvers, RPO) aren't parsed here yet — those live on the threat board and dossiers.</p>
+{% endif %}
+{% endblock %}

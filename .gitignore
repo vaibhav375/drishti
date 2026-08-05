@@ -1,0 +1,11 @@
+.env
+storage/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.sqlite3
+*.parquet
+.DS_Store
+.pytest_cache/
+*.log

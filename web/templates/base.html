@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}DRISHTI console{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-in">
+    <a class="brand" href="{{ url_for('overview') }}">DRISHTI<span>.</span></a>
+    <div class="links">
+      <a href="{{ url_for('overview') }}" class="{{ 'active' if nav=='overview' }}">overview</a>
+      <a href="{{ url_for('catalog') }}" class="{{ 'active' if nav=='catalog' }}">catalog</a>
+      <a href="{{ url_for('nl_query') }}" class="{{ 'active' if nav=='query' }}">ask</a>
+      <a href="{{ url_for('orbit_map') }}" class="{{ 'active' if nav=='orbit' }}">orbit map</a>
+      <a href="{{ url_for('watch_floor') }}" class="{{ 'active' if nav=='watch' }}">watch</a>
+      <a href="{{ url_for('threat_board') }}" class="{{ 'active' if nav=='threat' }}">threat</a>
+      <a href="{{ url_for('anomalies') }}" class="{{ 'active' if nav=='anomalies' }}">anomalies</a>
+      {% set more = ['conjunctions','disposal','events','country'] %}
+      <details class="more">
+        <summary class="{{ 'active' if nav in more }}">more ▾</summary>
+        <div class="more-menu">
+          <a href="{{ url_for('conjunctions') }}" class="{{ 'active' if nav=='conjunctions' }}">conjunctions</a>
+          <a href="{{ url_for('disposal') }}" class="{{ 'active' if nav=='disposal' }}">disposal</a>
+          <a href="{{ url_for('events_index') }}" class="{{ 'active' if nav=='events' }}">events</a>
+          <a href="{{ url_for('country_rollup') }}" class="{{ 'active' if nav=='country' }}">by nation</a>
+        </div>
+      </details>
+    </div>
+    <div class="status">public data · <b>not targeting</b></div>
+  </div>
+</nav>
+<main class="page">
+{% block content %}{% endblock %}
+</main>
+<footer class="foot">
+  <span><b>DRISHTI</b> — behavioral SDA from public data. Runs on a laptop.</span>
+  <span>Every figure traces to a computed value.</span>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

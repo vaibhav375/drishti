@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Anomaly detection — DRISHTI{% endblock %}
+{% block content %}
+<p class="eyebrow">Unsupervised anomaly detection · IsolationForest</p>
+<h1 class="title">Orbits that don’t fit the pattern</h1>
+<p class="lede">An IsolationForest trained on the orbital features of {{ "{:,}".format(total) }} active objects,
+  ranking the ones that sit furthest from the statistical distribution. This is the AI complement to the
+  rule-based threat score — it finds the unusual without being told what unusual looks like. An outlier is
+  <em>worth a look</em>, not a verdict: novel orbits and evasive objects both surface here.</p>
+
+<div class="tablewrap" style="margin-top:26px">
+<table>
+  <thead><tr><th class="mono">NORAD</th><th>Object</th><th>Type</th>
+    <th style="width:22%">Anomaly</th><th class="num">Score</th><th>Most unusual feature</th></tr></thead>
+  <tbody>
+  {% for it in items %}
+    <tr>
+      <td class="oid">{{ it.a.norad_id }}</td>
+      <td><a class="name" href="{{ url_for('object_dossier', norad_id=it.a.norad_id) }}">{{ it.row.get('name','—') }}</a></td>
+      <td><span class="tag">{{ it.row.get('object_type','—') }}</span></td>
+      <td><div class="track" style="height:7px"><div class="fill" style="width:{{ it.a.score*100 }}%;background:{{ '#e83a00' if it.a.score>=0.66 else '#b5730a' }}"></div></div></td>
+      <td class="num" style="font-weight:600">{{ "%.0f"|format(it.a.score*100) }}</td>
+      <td class="mono" style="font-size:12px;color:var(--slate)">{{ it.a.top_feature }} ({{ "%+.1f"|format(it.a.top_feature_z) }}σ)</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint" style="margin-top:16px">Features: apogee, perigee, inclination, eccentricity, period — standardized, no propagation needed.
+  The named feature is the one furthest from the population mean for that object.</p>
+{% endblock %}
