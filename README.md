@@ -1,5 +1,10 @@
 # DRISHTI — Space Domain Awareness & Behavioral Threat Analysis
 
+**Live demo: https://drishti-25tc.onrender.com** — free-tier host, so the first
+visit after idle takes ~1 min to wake and heavy pages take 20–60 s. The demo
+uses public Celestrak data only and has no local LLM (reports show the grounded
+facts instead of a narrative) — see [Deploying](#deploying-render-free-plan).
+
 **DRISHTI reads what a satellite is *doing*, not just where it is** — and it
 runs entirely offline, on a laptop, from public data. It ingests public
 two-line element sets, characterizes on-orbit behavior (maneuvers, rendezvous
@@ -135,6 +140,25 @@ open web/index.html
 #     by the Flask console above; kept for history only.
 streamlit run dashboard/app.py
 ```
+
+## Deploying (Render free plan)
+
+```bash
+python deploy/build_space.py --target render   # bundle -> build/render/, public Celestrak-only DB
+# push build/render/ as the orphan `render` branch, then in Render:
+# New -> Blueprint -> this repo, branch `render` (render.yaml is at its root)
+```
+
+The deploy ships **only public Celestrak data** — Space-Track TLEs are stripped
+at build time (their user agreement forbids redistribution), so detectors that
+need long element-set history often (correctly) refuse there. The 512 MB host
+has no LLM (`DRISHTI_LLM_BACKEND=none`): reports show the grounded facts block
+instead, and "ask" falls back to name search. `--target space` builds a
+Hugging Face Docker Space variant with a CPU LLM (requires HF PRO).
+Found while deploying: at full-catalogue scale (~16.8k objects) per-connection
+schema setup and one-query-per-object loops made dossiers ~10x slower, and
+`run_cascade` never finished on the Starlink shells — fixed with a bulk TLE
+query and the vectorized, equivalence-tested `detect/cascade.py::screen_top`.
 
 ## Status vs handoff tiers
 
