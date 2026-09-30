@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Watch floor — DRISHTI{% endblock %}
+{% block content %}
+
+<div class="band-head" style="border:none;padding-top:0">
+  <div>
+    <p class="eyebrow">Autonomous watch agent</p>
+    <h1 class="title" style="margin-top:10px">What changed since you last looked</h1>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a class="btn" href="{{ url_for('watch_run') }}">▷ Run cycle</a>
+    <a class="btn" href="{{ url_for('watch_run', refresh=1) }}">↻ Run + refresh TLEs</a>
+  </div>
+</div>
+<p class="lede">The agent runs the full pipeline over your watchlist, diffs it against the last cycle, and
+  surfaces only what's <em>new</em> — new maneuvers, threat shifts, proximity onsets, disposal changes.
+  Every finding traces to a computed detector output; the brief is checked by the anti-hallucination harness.</p>
+
+{% if not watchlist %}
+<div class="notice" style="margin-top:24px">Watchlist is empty. Open any object's dossier and press
+  <span style="color:var(--ink)">+ add to watch</span>, then run a cycle.</div>
+{% else %}
+
+{% if latest %}
+<div class="card" style="margin-top:24px">
+  <div class="card-head"><h2 class="sect">Latest cycle</h2>
+    <span class="meta">cycle {{ latest.cycle_id }} · {{ latest.run_at[:16].replace('T',' ') }} UTC
+      {%- if latest.refreshed %} · TLEs refreshed{% endif %} · {{ latest.n_findings }} finding(s)</span></div>
+
+  {% if findings %}
+  <div class="mits">
+    {% for f in findings %}
+    <div class="mit {{ f.significance }}">
+      <div class="top">
+        <span class="mtitle">
+          {% if f.norad_id %}<a class="name" href="{{ url_for('object_dossier', norad_id=f.norad_id) }}" style="border-bottom:1px solid var(--signal)">{{ names.get(f.norad_id, {}).get('name', f.norad_id) }}</a> — {% endif %}{{ f.kind.replace('_',' ') }}</span>
+        <span class="cat">{{ f.significance }}</span>
+      </div>
+      <div class="why">{{ f.summary }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="hint" style="margin-bottom:16px">No changes detected this cycle — every watched object was characterized and diffed against the previous baseline. All signals (threat score, maneuvers, RPO, disposal) are unchanged.</p>
+  {% endif %}
+
+  {# ---- Per-object status summary ---- #}
+  {% if states %}
+  <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--hair-soft)">
+    <div class="k" style="font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--slate);margin-bottom:12px">Object status at this cycle</div>
+    <div class="tablewrap" style="border:none">
+    <table>
+      <thead><tr>
+        <th>Object</th>
+        <th class="num">Threat</th>
+        <th>Band</th>
+        <th class="num">Maneuvers</th>
+        <th>RPO</th>
+        <th>Disposal</th>
+        <th>Re-entry</th>
+      </tr></thead>
+      <tbody>
+      {% for w in watchlist %}
+        {% set s = states.get(w.norad_id) %}
+        {% if s %}
+        <tr>
+          <td><a class="name" href="{{ url_for('object_dossier', norad_id=w.norad_id) }}">{{ names.get(w.norad_id, {}).get('name', w.norad_id) }}</a></td>
+          <td class="num">{{ "%.0f"|format(s.threat_score) if s.threat_score is not none else '—' }}<small style="color:var(--slate)">/100</small></td>
+          <td>
+            {% if s.threat_band == 'high' %}<span class="tag sig">{{ s.threat_band }}</span>
+            {% elif s.threat_band == 'moderate' %}<span class="tag warn">{{ s.threat_band }}</span>
+            {% elif s.threat_band %}<span class="tag ok">{{ s.threat_band }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="num">{{ s.n_maneuvers if s.n_maneuvers is not none else '—' }}</td>
+          <td>
+            {% if s.rpo_label == 'likely' %}<span class="tag sig">{{ s.rpo_label }}</span>
+            {% elif s.rpo_label == 'possible' %}<span class="tag warn">{{ s.rpo_label }}</span>
+            {% elif s.rpo_label %}<span class="tag">{{ s.rpo_label }}</span>
+            {% else %}—{% endif %}
+            {% if s.rpo_min_range_km is not none %}
+              <span class="hint" style="margin-left:4px">{{ "%.0f m"|format(s.rpo_min_range_km * 1000) if s.rpo_min_range_km < 1.0 else "%.1f km"|format(s.rpo_min_range_km) }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.disposal_status %}
+              {% if 'NON_COMPLIANT' in s.disposal_status or 'BELOW' in s.disposal_status %}<span class="tag sig">{{ s.disposal_status | replace('_', ' ') | lower }}</span>
+              {% elif 'COMPLIANT' in s.disposal_status %}<span class="tag ok">{{ s.disposal_status | replace('_', ' ') | lower }}</span>
+              {% else %}<span class="tag">{{ s.disposal_status | replace('_', ' ') | lower }}</span>{% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="mono" style="font-size:12.5px;color:var(--slate)">{{ s.decay_reentry_iso[:10] if s.decay_reentry_iso else '—' }}</td>
+        </tr>
+        {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if latest.brief %}
+  <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--hair-soft)">
+    <div class="k" style="font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--slate);margin-bottom:8px">Grounded brief</div>
+    <p class="report" style="font-size:15.5px">{{ latest.brief }}</p>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="notice" style="margin-top:24px">No cycles yet. Press <span style="color:var(--ink)">Run cycle</span> to establish a baseline.</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head"><h2 class="sect">Watchlist</h2><span class="meta">{{ watchlist|length }} object(s)</span></div>
+  <div class="kv">
+    {% for w in watchlist %}
+    <div><div class="k">NORAD {{ w.norad_id }}</div>
+      <div class="v" style="font-family:var(--font-body);font-size:14px">
+        <a class="name" href="{{ url_for('object_dossier', norad_id=w.norad_id) }}">{{ names.get(w.norad_id, {}).get('name', w.norad_id) }}</a></div></div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if cycles|length > 1 %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Cycle feed</h2><span class="meta">most recent first</span></div>
+  <div class="tablewrap" style="border:none">
+  <table>
+    <thead><tr><th class="mono">Cycle</th><th>Run at (UTC)</th><th class="num">Findings</th><th>Refreshed</th></tr></thead>
+    <tbody>
+    {% for c in cycles %}
+      <tr>
+        <td class="oid">{{ c.cycle_id }}</td>
+        <td class="mono" style="font-size:12.5px">{{ c.run_at[:16].replace('T',' ') }}</td>
+        <td class="num">{{ c.n_findings }}</td>
+        <td class="mono" style="font-size:12px;color:var(--slate)">{{ 'yes' if c.refreshed else '—' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,21 @@
+# Render Blueprint — DRISHTI web console on the free plan (512 MB, 0.1 CPU).
+# This file lives at the root of the `render` branch, which holds the built
+# bundle (python deploy/build_space.py --target render). No local LLM here.
+services:
+  - type: web
+    name: drishti
+    runtime: python
+    plan: free
+    branch: render
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn web.app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: DRISHTI_LLM_BACKEND
+        value: none
+      - key: DRISHTI_PREWARM
+        value: "1"
+      - key: DRISHTI_CACHE_TTL_S
+        value: "21600"

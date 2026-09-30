@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ ev.description }} — DRISHTI{% endblock %}
+{% block content %}
+<div class="idline" style="font-family:var(--font-mono);font-size:13px;color:var(--slate);margin-bottom:8px">
+  <a href="{{ url_for('events_index') }}" style="color:var(--signal)">← all events</a>
+</div>
+<p class="eyebrow">{{ ev.event_type }} · {{ ev.label }}</p>
+<h1 class="title">{{ ev.description }}</h1>
+<p class="lede">Window {{ ev.window_start }} → {{ ev.window_end }}. {{ ev.notes }}</p>
+
+<div class="card" style="margin-top:24px">
+  <div class="card-head"><h2 class="sect">Objects</h2><span class="meta">actor → target</span></div>
+  <div class="kv">
+    {% for a in ev.actor_norad %}
+    <div><div class="k">Actor</div><div class="v"><a class="name" href="{{ url_for('object_dossier', norad_id=a) }}" style="border-bottom:1px solid var(--signal)">{{ names.get(a, {}).get('name', a) }}</a> · {{ a }}</div></div>
+    {% endfor %}
+    {% for t in ev.target_norad %}
+    <div><div class="k">Target</div><div class="v">{{ names.get(t, {}).get('name', t) }} · {{ t }}</div></div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if svg.range %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">How close it got</h2><span class="meta">relative range · reconstructed from public TLEs</span></div>
+  <div class="plot-box" style="border:none;padding:0">{{ svg.range|safe }}</div>
+</div>
+{% endif %}
+
+{% if d and d.threat and d.threat.score is not none %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">DRISHTI’s read on the actor</h2>
+    <span class="meta">{{ d.name }} · threat {{ "%.0f"|format(d.threat.score) }}/100</span></div>
+  <div class="mits">
+    {% for m in d.mitigations[:3] %}
+    <div class="mit {{ m.urgency }}"><div class="top"><span class="mtitle">{{ m.title }}</span><span class="cat">{{ m.urgency }}</span></div><div class="why">{{ m.rationale }}</div></div>
+    {% endfor %}
+  </div>
+  <p style="margin-top:16px"><a class="btn" href="{{ url_for('object_dossier', norad_id=d.norad_id) }}">Full dossier →</a></p>
+</div>
+{% endif %}
+{% endblock %}

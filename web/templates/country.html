@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}By nation — DRISHTI{% endblock %}
+{% block content %}
+<p class="eyebrow">Operator / nation rollup</p>
+<h1 class="title">Who’s up there</h1>
+<p class="lede">Active catalogued objects by owner — payloads, debris, and GEO presence. Attribution comes
+  from SATCAT; ownership is context, never a threat weighting on its own (that would cross into the
+  targeting framing this project rules out).</p>
+
+<div class="tablewrap" style="margin-top:24px">
+<table>
+  <thead><tr><th>Owner</th><th class="num">Objects</th><th class="num">Payloads</th><th class="num">Debris</th><th class="num">GEO</th><th style="width:32%">Share</th></tr></thead>
+  <tbody>
+  {% set mx = rows[0].n if rows else 1 %}
+  {% for r in rows %}
+    <tr>
+      <td class="mono" style="font-weight:500">{{ r.country }}</td>
+      <td class="num">{{ "{:,}".format(r.n) }}</td>
+      <td class="num">{{ "{:,}".format(r.pay) }}</td>
+      <td class="num" style="color:var(--slate)">{{ "{:,}".format(r.deb) }}</td>
+      <td class="num">{{ r.geo }}</td>
+      <td><div class="track" style="height:7px"><div class="fill" style="width:{{ (r.n/mx*100)|round }}%;background:var(--ref)"></div></div></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint" style="margin-top:16px">Top 30 owners by active-object count. Codes are SATCAT’s (CIS = former-Soviet states, PRC = China, US, etc.).</p>
+{% endblock %}

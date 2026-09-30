@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ d.name }} — grounded report — DRISHTI{% endblock %}
+{% block content %}
+
+<div class="idline" style="font-family:var(--font-mono);font-size:13px;color:var(--slate);margin-bottom:8px">
+  <a href="{{ url_for('object_dossier', norad_id=d.norad_id) }}" style="color:var(--signal)">← back to dossier</a>
+  · NORAD {{ d.norad_id }}
+</div>
+<p class="eyebrow">Grounded analyst report</p>
+<h1 class="title">{{ d.name }}</h1>
+
+{% if text is none %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Narrative</h2>
+    <span class="meta"><span class="tag warn">local model not available on this deployment</span></span></div>
+  <p class="hint">This hosted demo runs on a small server with no room for the local LLM, so no narrative is
+    generated. On a full install the model writes 3–5 sentences from exactly the facts below, and the
+    anti-hallucination harness then checks every number it states against them.</p>
+</div>
+<div class="card">
+  <div class="card-head"><h2 class="sect">Grounded facts</h2>
+    <span class="meta">computed by the detectors · the only input the model is allowed to use</span></div>
+  <pre class="report" style="white-space:pre-wrap;font-size:14px">{{ facts_block }}</pre>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-head"><h2 class="sect">Narrative</h2>
+    <span class="meta">local model · verified against computed facts</span></div>
+  <p class="report">{{ text }}</p>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2 class="sect">Verification</h2>
+    <span class="meta">
+      {% if verify.all_grounded %}<span class="tag ok">{{ verify.n_sentences }}/{{ verify.n_sentences }} grounded</span>
+      {% else %}<span class="tag warn">{{ verify.n_sentences - verify.n_ungrounded }}/{{ verify.n_sentences }} grounded</span>{% endif %}
+    </span></div>
+  <p class="hint">Every numeric claim was checked against the facts the detectors produced. A sentence with a
+    number the system can’t back is flagged — this is the anti-hallucination harness.</p>
+  {% if not verify.all_grounded %}
+  <div class="mits" style="margin-top:14px">
+    {% for v in verify.verdicts if not v.grounded %}
+    <div class="mit elevated"><div class="why"><b>Unbacked:</b> “{{ v.sentence }}” — numbers not in the facts: {{ v.unbacked_numbers|join(', ') }}</div></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

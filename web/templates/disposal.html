@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Disposal monitor — DRISHTI{% endblock %}
+{% block content %}
+<p class="eyebrow">Graveyard / disposal monitor</p>
+<h1 class="title">Is the GEO belt being cleaned up?</h1>
+<p class="lede">End-of-life GEO satellites are meant to be re-orbited above the IADC protected region.
+  Each dot is a GEO-belt object by inclination and altitude relative to GEO: green cleared the
+  re-orbit floor, amber fell short, orange is drifting uncontrolled through the belt.</p>
+
+<div class="statrow" style="margin:26px 0 22px">
+  <div class="stat"><div class="n" style="color:#1d7d55">{{ counts.COMPLIANT_GRAVEYARD }}</div><div class="l">compliant graveyard</div></div>
+  <div class="stat"><div class="n" style="color:#b5730a">{{ counts.NON_COMPLIANT_SHALLOW }}</div><div class="l">shallow re-orbit (non-compliant)</div></div>
+  <div class="stat"><div class="n" style="color:#e83a00">{{ counts.BELOW_GEO_DRIFT }}</div><div class="l">below-GEO drift</div></div>
+  <div class="stat"><div class="n" style="color:#3a9c8c">{{ counts.INCLINED_GEOSYNCHRONOUS }}</div><div class="l">inclined geosynchronous (operational)</div></div>
+  <div class="stat"><div class="n" style="color:#1a4f9c">{{ counts.OPERATIONAL_OR_ABANDONED_IN_PLACE }}</div><div class="l">in the operational box</div></div>
+</div>
+
+<div class="plot-box">{{ scatter|safe }}</div>
+<div class="plot-legend">
+  <span><i style="background:#1d7d55"></i>compliant graveyard</span>
+  <span><i style="background:#b5730a"></i>shallow re-orbit</span>
+  <span><i style="background:#e83a00"></i>below-GEO drift</span>
+  <span><i style="background:#1a4f9c"></i>operational / abandoned in place</span>
+  <span style="color:var(--slate)">· ±20° protected-region view; inclined geosynchronous (IGSO) counted separately</span>
+</div>
+
+{% if flagged %}
+<div class="card" style="margin-top:26px">
+  <div class="card-head"><h2 class="sect">Flagged for follow-up</h2><span class="meta">outside the IADC guideline</span></div>
+  <div class="tablewrap" style="border:none">
+  <table>
+    <thead><tr><th class="mono">NORAD</th><th>Object</th><th>Status</th><th class="num">Perigee vs GEO</th><th class="num">Incl</th></tr></thead>
+    <tbody>
+    {% for a in flagged %}
+      <tr>
+        <td class="oid">{{ a.norad_id }}</td>
+        <td><a class="name" href="{{ url_for('object_dossier', norad_id=a.norad_id) }}">{{ names.get(a.norad_id, {}).get('name', '—') }}</a></td>
+        <td><span class="tag {{ 'warn' if a.status=='NON_COMPLIANT_SHALLOW' else 'sig' }}">{{ a.status }}</span></td>
+        <td class="num">{{ "%+.0f"|format(a.km_above_geo) }} km</td>
+        <td class="num">{{ "%.1f"|format(a.inclination_deg) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<p class="hint" style="margin-top:20px">Compliance is checked against the IADC 235 km re-orbit floor. The A/m-dependent term isn’t added
+  (public data has no mass) — so this is a minimum-standard screen, stated plainly.</p>
+{% endblock %}

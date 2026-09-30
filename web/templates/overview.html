@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}DRISHTI — space domain awareness console{% endblock %}
+{% block content %}
+
+<section class="hero-band">
+  <p class="eyebrow">Behavioral characterization of on-orbit activity</p>
+  <h1 class="title">Read what an object is <em>doing</em> — not just where it is.</h1>
+  <p class="lede">DRISHTI ingests public tracking data and characterizes on-orbit behavior:
+    maneuvers, rendezvous, fragmentation, disposal. Pick any object for its full dossier, or
+    start from the events the system has already reconstructed from the historical record.</p>
+
+  <div class="statrow">
+    <div class="stat"><div class="n">{{ "{:,}".format(stats.active) }}</div><div class="l">active objects catalogued</div></div>
+    <div class="stat"><div class="n">{{ "{:,}".format(stats.payloads) }}</div><div class="l">active payloads</div></div>
+    <div class="stat"><div class="n">{{ stats.featured }}</div><div class="l">with full behavioral history</div></div>
+    <div class="stat"><div class="n">{{ stats.events }}</div><div class="l">labeled validation events</div></div>
+  </div>
+</section>
+
+<div class="tiles">
+  <a class="tile" href="{{ url_for('catalog') }}">
+    <div class="k">Browse</div>
+    <h3>Object catalog</h3>
+    <p>Search {{ "{:,}".format(stats.active) }} active objects by name, ID, or regime. Open any one for its dossier.</p>
+    <span class="go">Open catalog →</span>
+  </a>
+  <a class="tile" href="{{ url_for('threat_board') }}">
+    <div class="k">Rank</div>
+    <h3>Threat board</h3>
+    <p>Objects with full behavioral data, ranked by an explainable composite threat score with per-factor breakdown.</p>
+    <span class="go">Open threat board →</span>
+  </a>
+  <a class="tile" href="{{ url_for('object_dossier', norad_id=49330) }}">
+    <div class="k">Case study</div>
+    <h3>Shijian-21 dossier</h3>
+    <p>The inspector that towed BeiDou-2 G2 to a graveyard orbit — reconstructed from public TLEs, with mitigations.</p>
+    <span class="go">Open dossier →</span>
+  </a>
+</div>
+
+<div class="card" style="margin-top:30px">
+  <div class="card-head"><h2 class="sect">Jump to a reconstructed event</h2><span class="meta">real, documented · validated</span></div>
+  <div class="tiles" style="margin-top:6px">
+    <a class="tile" href="{{ url_for('object_dossier', norad_id=40258) }}">
+      <div class="k">RPO · serial inspector</div><h3>Luch / Olymp-K</h3>
+      <p>Repeated close approaches to multiple GEO comsats over years.</p><span class="go">Dossier →</span></a>
+    <a class="tile" href="{{ url_for('object_dossier', norad_id=13552) }}">
+      <div class="k">Fragmentation</div><h3>Cosmos 1408</h3>
+      <p>1,806 debris fragments from a 2021 ASAT test.</p><span class="go">Dossier →</span></a>
+    <a class="tile" href="{{ url_for('object_dossier', norad_id=25544) }}">
+      <div class="k">Control</div><h3>ISS</h3>
+      <p>Routine reboosts — the object that must <em>not</em> alarm.</p><span class="go">Dossier →</span></a>
+  </div>
+</div>
+
+{% endblock %}

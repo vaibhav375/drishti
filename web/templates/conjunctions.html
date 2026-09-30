@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Conjunctions — DRISHTI{% endblock %}
+{% block content %}
+<p class="eyebrow">Conjunction screening</p>
+<h1 class="title">Close-approach candidates</h1>
+<p class="lede">A naive all-pairs screen of the catalogue would never finish on a laptop. DRISHTI runs a
+  cascade — altitude-band sieve, then orbital-plane alignment — to cut {{ "{:,}".format(pairs) }}
+  possible pairs down to a short candidate list worth the expensive time-domain check.</p>
+
+<div class="statrow" style="margin:26px 0 22px">
+  <div class="stat"><div class="n">{{ "{:,}".format(n) }}</div><div class="l">objects screened (live catalog)</div></div>
+  <div class="stat"><div class="n">{{ "{:,}".format(pairs) }}</div><div class="l">possible pairs</div></div>
+  <div class="stat"><div class="n">{{ "{:,}".format(total) }}</div><div class="l">survived the cascade</div></div>
+  <div class="stat"><div class="n">~1.5<small>s</small></div><div class="l">to screen them all</div></div>
+</div>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th class="mono">Pair</th><th>Objects</th><th class="num">Alt overlap</th><th class="num">Rel. inclination</th></tr></thead>
+  <tbody>
+  {% for c in cands %}
+    <tr>
+      <td class="oid">{{ c.norad_a }} / {{ c.norad_b }}</td>
+      <td>
+        <a class="name" href="{{ url_for('object_dossier', norad_id=c.norad_a) }}">{{ names.get(c.norad_a, {}).get('name', c.norad_a) }}</a>
+        <span style="color:var(--slate)"> ↔ </span>
+        <a class="name" href="{{ url_for('object_dossier', norad_id=c.norad_b) }}">{{ names.get(c.norad_b, {}).get('name', c.norad_b) }}</a>
+      </td>
+      <td class="num">{{ "%.0f"|format(c.altitude_overlap_km) }} km</td>
+      <td class="num">{{ "%.2f"|format(c.relative_inclination_deg) }}°</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint" style="margin-top:16px">Top {{ cands|length }} candidates by plane alignment. Surviving the cascade means the orbits
+  <em>could</em> approach — it is a screen, not a confirmed conjunction. The next step is a
+  time-domain Pc computation on these pairs only.</p>
+{% endblock %}

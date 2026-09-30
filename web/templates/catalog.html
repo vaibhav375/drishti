@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Catalog — DRISHTI{% endblock %}
+{% block content %}
+
+<p class="eyebrow">Object catalog</p>
+<h1 class="title">Browse the catalogue</h1>
+
+<form class="controls" method="get" action="{{ url_for('catalog') }}" id="catalog-form">
+  <label class="search">
+    <span class="hint">⌕</span>
+    <input type="text" name="q" value="{{ q }}" placeholder="search by name or NORAD id — e.g. COSMOS, 49330" autofocus>
+  </label>
+</form>
+
+<div class="filter-row">
+  <div class="filter-group">
+    <span class="filter-label">regime</span>
+    <a class="chip {{ 'on' if not regime }}" href="{{ url_for('catalog', q=q, type=obj_type, country=country) }}">all</a>
+    {% for r in regimes %}
+    <a class="chip {{ 'on' if regime==r }}" href="{{ url_for('catalog', q=q, regime=r, type=obj_type, country=country) }}">{{ r }}</a>
+    {% endfor %}
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">type</span>
+    <a class="chip {{ 'on' if not obj_type }}" href="{{ url_for('catalog', q=q, regime=regime, country=country) }}">all</a>
+    {% for t in obj_types %}
+    <a class="chip {{ 'on' if obj_type==t }}" href="{{ url_for('catalog', q=q, regime=regime, type=t, country=country) }}">{{ t }}</a>
+    {% endfor %}
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">country</span>
+    <select class="chip-select" onchange="window.location.href=this.value" id="country-select">
+      <option value="{{ url_for('catalog', q=q, regime=regime, type=obj_type) }}" {{ 'selected' if not country }}>all countries</option>
+      {% for cc in countries %}
+      <option value="{{ url_for('catalog', q=q, regime=regime, type=obj_type, country=cc) }}" {{ 'selected' if country==cc }}>{{ cc }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<p class="hint" style="margin-bottom:14px">{{ "{:,}".format(total) }} active objects match{% if q %} "{{ q }}"{% endif %}{% if regime %} · {{ regime }}{% endif %}{% if obj_type %} · {{ obj_type }}{% endif %}{% if country %} · {{ country }}{% endif %} · page {{ page }} of {{ pages or 1 }}</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr>
+    <th class="mono">NORAD</th><th>Object</th><th>Country</th><th>Type</th>
+    <th>Regime</th><th class="num">Perigee</th><th class="num">Apogee</th><th class="num">Incl</th>
+  </tr></thead>
+  <tbody>
+  {% for it in items %}
+    <tr>
+      <td class="oid">{{ it.norad_id }}</td>
+      <td><a class="name" href="{{ url_for('object_dossier', norad_id=it.norad_id) }}">{{ it.name }}</a></td>
+      <td class="mono" style="color:var(--slate)">{{ it.country or '—' }}</td>
+      <td><span class="tag">{{ it.object_type or '—' }}</span></td>
+      <td><span class="tag {{ 'ref' if it.regime=='GEO' else '' }}">{{ it.regime }}</span></td>
+      <td class="num">{{ "%.0f"|format(it.perigee_km) if it.perigee_km is not none else '—' }}</td>
+      <td class="num">{{ "%.0f"|format(it.apogee_km) if it.apogee_km is not none else '—' }}</td>
+      <td class="num">{{ "%.1f"|format(it.inclination) if it.inclination is not none else '—' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8" style="padding:30px;text-align:center;color:var(--slate)">
+      No active objects match. Try a different name or ID.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if pages and pages > 1 %}
+<div class="controls" style="margin-top:20px;justify-content:center">
+  {% if page > 1 %}<a class="chip" href="{{ url_for('catalog', q=q, regime=regime, type=obj_type, country=country, page=page-1) }}">← prev</a>{% endif %}
+  <span class="hint">{{ page }} / {{ pages }}</span>
+  {% if page < pages %}<a class="chip" href="{{ url_for('catalog', q=q, regime=regime, type=obj_type, country=country, page=page+1) }}">next →</a>{% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
